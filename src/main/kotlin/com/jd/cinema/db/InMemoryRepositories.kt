@@ -10,6 +10,10 @@ class InMemoryMovieRepository(private val movies: List<Movie>) : MovieRepository
         return movies
     }
 
+    override fun fetchMovie(movieId: UUID): Movie? {
+        return movies.find { it.id == movieId }
+    }
+
     object InMemoryMovieRepository {
 
         fun createFastAndFuriousDatabase(): MovieRepository {

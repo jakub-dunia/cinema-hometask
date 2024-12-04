@@ -2,6 +2,9 @@ package com.jd.cinema
 
 import com.jd.cinema.db.*
 import com.jd.cinema.dto.*
+import com.jd.cinema.integrations.OmdbHttpIntegration
+import com.jd.cinema.integrations.OmdbIntegration
+import com.jd.cinema.integrations.OmdbResponse
 import io.ktor.http.*
 import io.ktor.server.application.*
 import io.ktor.server.request.*
@@ -27,6 +30,17 @@ fun Application.configureRouting() {
         InMemoryMovieRepository.InMemoryMovieRepository.createFastAndFuriousDatabase()
     val screeningRepository: ScreeningRepository = InMemoryScreeningRepository(mutableMapOf())
     val reviewRepository: ReviewRepository = InMemoryReviewRepository()
+
+    val omdbIntegration: OmdbIntegration = OmdbHttpIntegration()
+
+    fun getMovieDetails(movieId: UUID): OmdbResponse {
+        val movie = movieRepository.fetchMovie(movieId)
+        return if (movie != null) {
+            omdbIntegration.getMovieDetails(movie.getImdbId())
+        } else {
+            OmdbResponse()
+        }
+    }
 
     routing {
         route("/int/v1/") {
@@ -73,10 +87,22 @@ fun Application.configureRouting() {
                         val movieId = UUID.fromString(call.pathParameters["movieId"])
 
                         // bad request on invalid movie id
+                        val movie = movieRepository.fetchMovie(movieId)
+
+                        if (movie == null) {
+                            call.respond(HttpStatusCode.NotFound)
+                        }
 
                         val screenings = screeningRepository.fetchScreeningsByMovieId(movieId)
+                        val movieDetails = omdbIntegration.getMovieDetails(movie!!.getImdbId())
 
-                        call.respond(MovieResponse(movieId, screenings.map { ScreeningResponse(it.timestamp, it.price) }, null)) // enrich with movie details
+                        call.respond(
+                            MovieResponse(
+                                movieId,
+                                screenings.map { ScreeningResponse(it.timestamp, it.price) },
+                                transformOmdbResponseToMovieDetailsResponse(movieId, movieDetails)
+                            )
+                        ) // enrich with movie details
 
                     }
                     get("/screenings") {
@@ -84,13 +110,25 @@ fun Application.configureRouting() {
 
                         val screenings = screeningRepository.fetchScreeningsByMovieId(movieId)
 
-                        call.respond(MovieScreeningResponse(movieId, screenings.map { ScreeningResponse(it.timestamp, it.price) }))
+                        call.respond(
+                            MovieScreeningResponse(
+                                movieId,
+                                screenings.map { ScreeningResponse(it.timestamp, it.price) })
+                        )
                     }
                     get("/details") {
                         val movieId = UUID.fromString(call.pathParameters["movieId"])
+                        val movie = movieRepository.fetchMovie(movieId)
+                        if (movie != null) {
+                            val movieDetails = omdbIntegration.getMovieDetails(movie.getImdbId())
+                            call.respond(
+                                transformOmdbResponseToMovieDetailsResponse(movieId, movieDetails)
+                            )
 
+                        } else {
+                            call.respond(HttpStatusCode.NotFound)
+                        }
 
-                        call.respond(MovieDetailsResponse(movieId, "stub", "stub", "stub"))
 
                     }
                     get("/rating") {
@@ -125,4 +163,6 @@ fun Application.configureRouting() {
             }
         }
     }
+
+
 }
