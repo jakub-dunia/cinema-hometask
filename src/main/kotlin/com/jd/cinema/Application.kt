@@ -9,7 +9,6 @@ fun main(args: Array<String>) {
 fun Application.module() {
     configureMonitoring()
     configureSerialization()
-    configureSecurity()
     configureHTTP()
     configureRouting()
 }

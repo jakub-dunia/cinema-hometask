@@ -7,23 +7,13 @@ import com.jd.cinema.integrations.OmdbIntegration
 import com.jd.cinema.integrations.OmdbResponse
 import io.ktor.http.*
 import io.ktor.server.application.*
+import io.ktor.server.auth.*
 import io.ktor.server.request.*
 import io.ktor.server.response.*
 import io.ktor.server.routing.*
 import org.jetbrains.exposed.sql.Database
 import java.time.LocalDateTime
 import java.util.*
-
-/**
- *     An internal endpoint in which they (i.e., the cinema owners) can update show times and prices for their movie catalog
- *
- *     An endpoint in which their customers (i.e., moviegoers) can fetch movie times
- *
- *     An endpoint in which their customers (i.e., moviegoers) can fetch details about one of their movies (e.g., name, description, release date, rating, IMDb rating, and runtime). Even though there's a limited offering, please use the OMDb APIs (detailed below) to demonstrate how to communicate across APIs.
- *
- *     An endpoint in which their customers (i.e., moviegoers) can leave a review rating (from 1-5 stars) about a particular movie
- *
- */
 
 fun Application.configureRouting() {
 
@@ -49,37 +39,60 @@ fun Application.configureRouting() {
         }
     }
 
+    authentication {
+        basic(name = "internal-api-auth") {
+            realm = "Ktor Server"
+            validate { credentials ->
+                if (credentials.name == "admin" && credentials.password == "admin") {
+                    UserIdPrincipal(credentials.name)
+                } else {
+                    null
+                }
+            }
+        }
+
+    }
+
     routing {
-        route("/int/v1/") {
-            route("screenings") {
-                get {
-                    val movieId = UUID.fromString(call.queryParameters["movieId"].orEmpty())
+        authenticate("internal-api-auth") {
+            route("/int/v1/") {
+                route("screenings") {
+                    get {
+                        val movieId = UUID.fromString(call.queryParameters["movieId"].orEmpty())
 
-                    // bad request on invalid movie id
+                        // bad request on invalid movie id
 
-                    val screenings = screeningRepository.fetchScreeningsByMovieId(movieId)
+                        val screenings = screeningRepository.fetchScreeningsByMovieId(movieId)
 
-                    call.respond(MovieResponse(movieId, screenings.map { ScreeningResponse(it.timestamp, it.price) }))
-                }
-                put {
-                    val screeningRequest: ScreeningRequest = call.receive<ScreeningRequest>()
+                        call.respond(
+                            MovieResponse(
+                                movieId,
+                                screenings.map { ScreeningResponse(it.timestamp, it.price) })
+                        )
+                    }
+                    put {
+                        val screeningRequest: ScreeningRequest = call.receive<ScreeningRequest>()
 
-                    // add validation if movie existing, if screening in the future? if price > 0
+                        // add validation if movie existing, if screening in the future? if price > 0
 
-                    screeningRepository.addScreening(
-                        UUID.fromString(screeningRequest.movieId),
-                        screeningRequest.dateTime,
-                        screeningRequest.price
-                    )
+                        screeningRepository.addScreening(
+                            UUID.fromString(screeningRequest.movieId),
+                            screeningRequest.dateTime,
+                            screeningRequest.price
+                        )
 
-                    call.respond(HttpStatusCode.NoContent)
-                }
-                delete {
-                    val deleteRequest: ScreeningDeleteRequest = call.receive<ScreeningDeleteRequest>()
+                        call.respond(HttpStatusCode.NoContent)
+                    }
+                    delete {
+                        val deleteRequest: ScreeningDeleteRequest = call.receive<ScreeningDeleteRequest>()
 
-                    screeningRepository.deleteScreening(UUID.fromString(deleteRequest.movieId), deleteRequest.dateTime)
+                        screeningRepository.deleteScreening(
+                            UUID.fromString(deleteRequest.movieId),
+                            deleteRequest.dateTime
+                        )
 
-                    call.respond(HttpStatusCode.OK)
+                        call.respond(HttpStatusCode.OK)
+                    }
                 }
             }
         }

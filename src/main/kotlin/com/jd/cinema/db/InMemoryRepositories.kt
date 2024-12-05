@@ -74,6 +74,7 @@ class InMemoryScreeningRepository(private val screenings: MutableMap<UUID, Mutab
 
 }
 
+@Deprecated("Used in early development, switch to SQL db")
 class InMemoryReviewRepository : ReviewRepository {
 
     private val reviews: MutableMap<UUID, MutableList<Review>> = mutableMapOf()
