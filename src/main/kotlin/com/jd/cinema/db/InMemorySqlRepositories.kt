@@ -1,6 +1,5 @@
 package com.jd.cinema.db
 
-import com.jd.cinema.db.InMemorySqlScreeningRepository.DbScreening
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.runBlocking
 import org.jetbrains.exposed.sql.*
@@ -24,7 +23,17 @@ class InMemorySqlMovieRepository(database: Database) : MovieRepository {
         transaction(database) {
             SchemaUtils.create(DbMovies)
 
-            InMemoryMovieRepository.InMemoryMovieRepository.createFastAndFuriousDatabase().fetchAllMovies().forEach {
+            listOf(
+                Movie(UUID.randomUUID(), "The Fast and the Furious", "imdb:tt0232500"),
+                Movie(UUID.randomUUID(), "2 Fast 2 Furious", "imdb:tt0322259"),
+                Movie(UUID.randomUUID(), "The Fast and the Furious: Tokyo Drift", "imdb:tt0463985"),
+                Movie(UUID.randomUUID(), "Fast & Furious", "imdb:tt1013752"),
+                Movie(UUID.randomUUID(), "Fast Five", "imdb:tt1596343"),
+                Movie(UUID.randomUUID(), "Fast & Furious 6", "imdb:tt1905041"),
+                Movie(UUID.randomUUID(), "Furious 7", "imdb:tt2820852"),
+                Movie(UUID.randomUUID(), "The Fate of the Furious", "imdb:tt4630562"),
+                Movie(UUID.randomUUID(), "F9: The Fast Saga", "imdb:tt5433138")
+            ).forEach {
                 create(it)
             }
         }
