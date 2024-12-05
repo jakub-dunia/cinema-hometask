@@ -3,7 +3,7 @@ package com.jd.cinema.db
 import java.time.LocalDateTime
 import java.util.*
 
-
+@Deprecated("Used in early development, switch to SQL db")
 class InMemoryMovieRepository(private val movies: List<Movie>) : MovieRepository {
 
     override fun fetchAllMovies(): List<Movie> {
@@ -35,15 +35,12 @@ class InMemoryMovieRepository(private val movies: List<Movie>) : MovieRepository
 
 }
 
+@Deprecated("Used in early development, switch to SQL db")
 class InMemoryScreeningRepository(private val screenings: MutableMap<UUID, MutableSet<Screening>>) :
     ScreeningRepository {
 
     override fun fetchScreeningsByMovieId(movieId: UUID): Set<Screening> {
         return screenings[movieId].orEmpty()
-    }
-
-    override fun fetchScreenings(movieId: UUID): List<Screening> {
-        return screenings.flatMap { it.value }
     }
 
     override fun addScreening(movieId: UUID, timestamp: LocalDateTime, price: Int): Screening {
