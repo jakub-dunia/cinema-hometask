@@ -1,9 +1,12 @@
 package com.jd.cinema.dto
 
 import com.jd.cinema.db.Movie
+import com.jd.cinema.db.Screening
 import com.jd.cinema.integrations.OmdbResponse
 import java.time.LocalDateTime
 import java.util.*
+
+data class MoviesResponse(val movies: List<MovieResponse>)
 
 data class MovieResponse(
     val id: UUID,
@@ -25,6 +28,23 @@ fun transformOmdbResponseToMovieDetailsResponse(movieId: UUID, omdbResponse: Omd
         omdbResponse.Title,
         omdbResponse.Year,
         omdbResponse.Rated
+        // skipping rest of parameters, this is sufficient as PoC
     )
 }
+
+fun transformMovieToMovieResponse(movie: Movie, screenings: Set<Screening>): MovieResponse {
+    return MovieResponse(
+        movie.id,
+        screenings.map { transforScreeningToScreeningResponse(it) },
+        null
+    )
+}
+
+fun transforScreeningToScreeningResponse(screening: Screening): ScreeningResponse {
+    return ScreeningResponse(
+        screening.timestamp,
+        screening.price
+    )
+}
+
 

@@ -1,24 +1,43 @@
 package com.jd.cinema.db
 
+import kotlinx.serialization.KSerializer
+import kotlinx.serialization.Serializable
+import kotlinx.serialization.descriptors.PrimitiveKind
+import kotlinx.serialization.descriptors.PrimitiveSerialDescriptor
+import kotlinx.serialization.encoding.Decoder
+import kotlinx.serialization.encoding.Encoder
 import java.time.LocalDateTime
+import java.time.format.DateTimeFormatter
 import java.util.*
 
-data class Movie(val id: UUID, val title: String, val externalId: String) {
+@Serializable
+data class Movie(
+    @Serializable(with = UUIDSerializer::class) val id: UUID,
+    val title: String,
+    val externalId: String
+) {
 
     fun getImdbId(): String {
-        return externalId.split(":")[1]
+        return externalId.split(":")[1]//TODO unsafe
     }
 
 }
 
-data class Screening(val id: UUID, val movieId: UUID, val timestamp: LocalDateTime, val price: Int)
+@Serializable
+data class Screening(
+    @Serializable(with = UUIDSerializer::class) val id: UUID,
+    @Serializable(with = UUIDSerializer::class) val movieId: UUID,
+    @Serializable(with = LocalDateTimeSerializer::class) val timestamp: LocalDateTime,
+    val price: Int
+)
 
+@Serializable
 data class Review(
-    val id: UUID,
-    val movieId: UUID,
+    @Serializable(with = UUIDSerializer::class) val id: UUID,
+    @Serializable(with = UUIDSerializer::class) val movieId: UUID,
     val rating: Int,
-    val timestamp: LocalDateTime
-)// idea - add deviceId for some simple unique check and cookie based spam prevention
+    @Serializable(with = LocalDateTimeSerializer::class) val timestamp: LocalDateTime
+)
 
 interface MovieRepository {
 
@@ -30,8 +49,6 @@ interface MovieRepository {
 interface ScreeningRepository {
 
     fun fetchScreeningsByMovieId(movieId: UUID): Set<Screening>
-
-    fun fetchScreenings(movieId: UUID): List<Screening>
 
     fun addScreening(movieId: UUID, timestamp: LocalDateTime, price: Int): Screening
 
@@ -45,4 +62,30 @@ interface ReviewRepository {
     fun fetchAllReviews(movieId: UUID): List<Review>
 
     fun getAverageRating(movieId: UUID): Double
+}
+
+object UUIDSerializer : KSerializer<UUID> {
+    override val descriptor = PrimitiveSerialDescriptor("UUID", PrimitiveKind.STRING)
+
+    override fun deserialize(decoder: Decoder): UUID {
+        return UUID.fromString(decoder.decodeString())
+    }
+
+    override fun serialize(encoder: Encoder, value: UUID) {
+        encoder.encodeString(value.toString())
+    }
+}
+
+object LocalDateTimeSerializer : KSerializer<LocalDateTime> {
+    override val descriptor = PrimitiveSerialDescriptor("LocalDateTime", PrimitiveKind.STRING)
+
+    val formatter: DateTimeFormatter = DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm")
+
+    override fun deserialize(decoder: Decoder): LocalDateTime {
+        return LocalDateTime.parse(decoder.decodeString(), formatter)
+    }
+
+    override fun serialize(encoder: Encoder, value: LocalDateTime) {
+        encoder.encodeString(value.format(formatter))
+    }
 }

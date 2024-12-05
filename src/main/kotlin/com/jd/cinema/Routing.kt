@@ -10,6 +10,7 @@ import io.ktor.server.application.*
 import io.ktor.server.request.*
 import io.ktor.server.response.*
 import io.ktor.server.routing.*
+import org.jetbrains.exposed.sql.Database
 import java.time.LocalDateTime
 import java.util.*
 
@@ -26,10 +27,16 @@ import java.util.*
 
 fun Application.configureRouting() {
 
-    val movieRepository: MovieRepository =
-        InMemoryMovieRepository.InMemoryMovieRepository.createFastAndFuriousDatabase()
-    val screeningRepository: ScreeningRepository = InMemoryScreeningRepository(mutableMapOf())
-    val reviewRepository: ReviewRepository = InMemoryReviewRepository()
+    val database = Database.connect(
+        url = "jdbc:h2:mem:test;DB_CLOSE_DELAY=-1",
+        user = "root",
+        driver = "org.h2.Driver",
+        password = "",
+    )
+
+    val movieRepository: MovieRepository = InMemorySqlMovieRepository(database)
+    val screeningRepository: ScreeningRepository = InMemorySqlScreeningRepository(database)
+    val reviewRepository: ReviewRepository = InMemorySqlReviewRepository(database)
 
     val omdbIntegration: OmdbIntegration = OmdbHttpIntegration()
 
@@ -80,7 +87,9 @@ fun Application.configureRouting() {
         route("/ext/v1/") {
             route("movies") {
                 get {
-                    //TODO potentially not needed
+                    call.respond(MoviesResponse(movieRepository.fetchAllMovies().map {
+                        transformMovieToMovieResponse(it, screeningRepository.fetchScreeningsByMovieId(it.id))
+                    }))
                 }
                 route("/{movieId}") {
                     get {
