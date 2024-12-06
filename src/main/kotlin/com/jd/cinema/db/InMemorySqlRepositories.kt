@@ -193,7 +193,14 @@ class InMemorySqlReviewRepository(database: Database) : ReviewRepository {
     }
 
     override fun getAverageRating(movieId: UUID): Double {
-        TODO("Not yet implemented")
+        return runBlocking {
+            dbQuery {
+                DbReview.selectAll()
+                    .where { DbReview.reviewedMovieId eq movieId.toString() }
+                    .map { it[DbReview.movieRating] }
+                    .average()
+            }
+        }
     }
 
     private suspend fun <T> dbQuery(block: suspend () -> T): T =

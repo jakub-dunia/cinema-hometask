@@ -22,25 +22,25 @@ data class ScreeningResponse(val timestamp: LocalDateTime, val price: Int)
 
 data class ReviewSummaryResponse(val movieId: UUID, val rating: Double)
 
-fun transformOmdbResponseToMovieDetailsResponse(movieId: UUID, omdbResponse: OmdbResponse): MovieDetailsResponse {
+fun transformOmdbResponseToMovieDetailsResponse(movieId: UUID, omdbResponse: OmdbResponse?): MovieDetailsResponse {
     return MovieDetailsResponse(
         movieId,
-        omdbResponse.Title,
-        omdbResponse.Year,
-        omdbResponse.Rated
+        omdbResponse?.Title ?: "",
+        omdbResponse?.Year ?: "",
+        omdbResponse?.Rated ?: ""
         // skipping rest of parameters, this is sufficient as PoC
     )
 }
 
-fun transformMovieToMovieResponse(movie: Movie, screenings: Set<Screening>): MovieResponse {
+fun transformMovieToMovieResponse(movie: Movie, screenings: Set<Screening>, details: OmdbResponse? = null): MovieResponse {
     return MovieResponse(
         movie.id,
-        screenings.map { transforScreeningToScreeningResponse(it) },
-        null
+        screenings.map { transformScreeningToScreeningResponse(it) },
+        transformOmdbResponseToMovieDetailsResponse(movie.id, details)
     )
 }
 
-fun transforScreeningToScreeningResponse(screening: Screening): ScreeningResponse {
+fun transformScreeningToScreeningResponse(screening: Screening): ScreeningResponse {
     return ScreeningResponse(
         screening.timestamp,
         screening.price
