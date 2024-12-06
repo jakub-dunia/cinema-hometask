@@ -53,3 +53,4 @@ All model classes have IDs generated as random UUID. This makes testing pain. Fi
 
 * Proper dependency injection - as Ktor does not seem to provide it out of the box, unless experimental features or some external projects (kodein). I did not have time to sink in that rabbit hole.
 * Better configuration - properties are extracted in messy way currently.
+* Proper integration testing - current version is more like smoke tests, did not have time to properly setup requests/responses etc.
