@@ -4,7 +4,6 @@ import com.jd.cinema.db.*
 import com.jd.cinema.dto.*
 import com.jd.cinema.integrations.OmdbHttpIntegration
 import com.jd.cinema.integrations.OmdbIntegration
-import com.jd.cinema.integrations.OmdbResponse
 import io.ktor.http.*
 import io.ktor.server.application.*
 import io.ktor.server.auth.*
@@ -21,11 +20,14 @@ fun Application.configureRouting() {
     val adminUser = environment.config.property("ktor.credentials.admin_user").getString()
     val adminPass = environment.config.property("ktor.credentials.admin_password").getString()
 
+    val dbUser = environment.config.property("ktor.credentials.db_user").getString()
+    val dbPassword = environment.config.property("ktor.credentials.db_password").getString()
+
     val database = Database.connect(
-        url = "jdbc:h2:mem:test;DB_CLOSE_DELAY=-1",
-        user = environment.config.property("ktor.credentials.db_user").getString(),
+        url = "jdbc:h2:mem:cinema;DB_CLOSE_DELAY=-1",
+        user = dbUser,
         driver = "org.h2.Driver",
-        password = environment.config.property("ktor.credentials.db_password").getString()
+        password = dbPassword
     )
 
     val movieRepository: MovieRepository = InMemorySqlMovieRepository(database)

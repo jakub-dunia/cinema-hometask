@@ -8,7 +8,14 @@ import java.time.LocalDateTime
 data class ReviewRequest(val movieId: String, val rating: Int)
 
 @Serializable
-data class ScreeningRequest(val movieId: String, @Serializable(with = LocalDateTimeSerializer::class) val dateTime: LocalDateTime, val price: Int)
+data class ScreeningRequest(
+    val movieId: String,
+    @Serializable(with = LocalDateTimeSerializer::class) val dateTime: LocalDateTime,
+    val price: Int
+)
 
 @Serializable
-data class ScreeningDeleteRequest(val movieId: String, @Serializable(with = LocalDateTimeSerializer::class) val dateTime: LocalDateTime)
+data class ScreeningDeleteRequest(
+    val movieId: String,
+    @Serializable(with = LocalDateTimeSerializer::class) val dateTime: LocalDateTime
+)
