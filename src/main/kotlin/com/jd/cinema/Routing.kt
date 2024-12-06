@@ -31,14 +31,6 @@ fun Application.configureRouting() {
 
     val omdbIntegration: OmdbIntegration = OmdbHttpIntegration()
 
-    fun getMovieDetails(movieId: UUID): OmdbResponse {
-        val movie = movieRepository.fetchMovie(movieId)
-        return if (movie != null) {
-            omdbIntegration.getMovieDetails(movie.getImdbId()!!)
-        } else {
-            OmdbResponse()
-        }
-    }
 
     authentication {
         basic(name = "internal-api-auth") {

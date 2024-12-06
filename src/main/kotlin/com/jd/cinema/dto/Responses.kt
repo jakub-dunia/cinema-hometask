@@ -29,9 +29,9 @@ data class ReviewSummaryResponse(val movieId: UUID, val rating: Double)
 
 fun transformOmdbResponseToMovieDetailsResponse(omdbResponse: OmdbResponse?): MovieDetailsResponse {
     return MovieDetailsResponse(
-        omdbResponse?.Title ?: "",
-        omdbResponse?.Year ?: "",
-        omdbResponse?.Rated ?: ""
+        omdbResponse?.Title,
+        omdbResponse?.Year,
+        omdbResponse?.Rated
         // skipping rest of parameters, this is sufficient as PoC
     )
 }
