@@ -4,3 +4,9 @@ ktor:
             - com.jd.cinema.ApplicationKt.module
     deployment:
         port: 8080
+
+    credentials:
+        db_user: root
+        db_password: ""
+        admin_user: admin
+        admin_password: admin
