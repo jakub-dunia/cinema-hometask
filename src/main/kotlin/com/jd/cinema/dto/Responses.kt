@@ -1,8 +1,10 @@
 package com.jd.cinema.dto
 
+import com.jd.cinema.db.LocalDateTimeSerializer
 import com.jd.cinema.db.Movie
 import com.jd.cinema.db.Screening
 import com.jd.cinema.integrations.OmdbResponse
+import kotlinx.serialization.Serializable
 import java.time.LocalDateTime
 import java.util.*
 
@@ -14,17 +16,19 @@ data class MovieResponse(
     val details: MovieDetailsResponse? = null
 )
 
-data class MovieDetailsResponse(val id: UUID, val title: String, val year: String, val rated: String) // more to follow
+data class MovieDetailsResponse(val title: String?, val year: String?, val rated: String?) // more to follow
 
 data class MovieScreeningResponse(val movieId: UUID, val screenings: List<ScreeningResponse>)
 
-data class ScreeningResponse(val timestamp: LocalDateTime, val price: Int)
+data class ScreeningResponse(
+    @Serializable(with = LocalDateTimeSerializer::class) val timestamp: LocalDateTime,
+    val price: Int
+)
 
 data class ReviewSummaryResponse(val movieId: UUID, val rating: Double)
 
-fun transformOmdbResponseToMovieDetailsResponse(movieId: UUID, omdbResponse: OmdbResponse?): MovieDetailsResponse {
+fun transformOmdbResponseToMovieDetailsResponse(omdbResponse: OmdbResponse?): MovieDetailsResponse {
     return MovieDetailsResponse(
-        movieId,
         omdbResponse?.Title ?: "",
         omdbResponse?.Year ?: "",
         omdbResponse?.Rated ?: ""
@@ -32,11 +36,15 @@ fun transformOmdbResponseToMovieDetailsResponse(movieId: UUID, omdbResponse: Omd
     )
 }
 
-fun transformMovieToMovieResponse(movie: Movie, screenings: Set<Screening>, details: OmdbResponse? = null): MovieResponse {
+fun transformMovieToMovieResponse(
+    movie: Movie,
+    screenings: Set<Screening>,
+    details: OmdbResponse? = null
+): MovieResponse {
     return MovieResponse(
         movie.id,
         screenings.map { transformScreeningToScreeningResponse(it) },
-        transformOmdbResponseToMovieDetailsResponse(movie.id, details)
+        transformOmdbResponseToMovieDetailsResponse(details)
     )
 }
 
