@@ -111,16 +111,28 @@ class InMemorySqlScreeningRepository(database: Database) : ScreeningRepository {
 
     override fun addScreening(movieId: UUID, timestamp: LocalDateTime, price: Int): Screening {
         return runBlocking {
+
+            val existing =
+                fetchScreeningsByMovieId(movieId).firstOrNull { it.timestamp == timestamp }
+
+            if (existing != null)
+                return@runBlocking existing
+
             val screening = Screening(UUID.randomUUID(), movieId, timestamp, price)
-            dbQuery {
+
+            val rows = dbQuery {
                 DbScreening.insert {
                     it[id] = screening.id.toString()
                     it[screeningMovieId] = screening.movieId.toString()
-                    it[screeningTime] = screening.timestamp.toString()// use date formatter
+                    it[screeningTime] = LocalDateTimeSerializer.formatter.format(screening.timestamp)
                     it[screeningPrice] = screening.price
                 }
             }
-            return@runBlocking screening
+
+            if (rows.insertedCount == 1)
+                return@runBlocking screening
+            else
+                throw NoSuchElementException("Could not add screening: $screening")
         }
     }
 
@@ -167,7 +179,7 @@ class InMemorySqlReviewRepository(database: Database) : ReviewRepository {
                 DbReview.insert {
                     it[id] = review.id.toString()
                     it[reviewedMovieId] = review.movieId.toString()
-                    it[reviewTimestamp] = review.timestamp.toString()// use date formatter
+                    it[reviewTimestamp] = LocalDateTimeSerializer.formatter.format(review.timestamp)
                     it[movieRating] = review.rating
                 }
             }

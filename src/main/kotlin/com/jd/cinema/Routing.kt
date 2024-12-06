@@ -66,15 +66,19 @@ fun Application.configureRouting() {
                                     ?: throw IllegalArgumentException("Movie ID not provided")
                             )
 
-                            movieRepository.fetchMovie(movieId) ?: throw IllegalArgumentException("Movie not found")
+                            val movie = movieRepository.fetchMovie(movieId)
 
-                            val screenings = screeningRepository.fetchScreeningsByMovieId(movieId)
+                            if (movie == null) {
+                                call.respond(HttpStatusCode.NotFound)
+                            } else {
+                                val screenings = screeningRepository.fetchScreeningsByMovieId(movieId)
 
-                            call.respond(
-                                MovieResponse(
-                                    movieId,
-                                    screenings.map { ScreeningResponse(it.timestamp, it.price) })
-                            )
+                                call.respond(
+                                    MovieResponse(
+                                        movieId,
+                                        screenings.map { ScreeningResponse(it.timestamp, it.price) })
+                                )
+                            }
                         } catch (e: IllegalArgumentException) {
                             call.application.environment.log.error(e.message)
                             call.respond(HttpStatusCode.BadRequest, e.message ?: "")
@@ -85,15 +89,20 @@ fun Application.configureRouting() {
                         try {
                             val movieId = UUID.fromString(screeningRequest.movieId)
 
-                            movieRepository.fetchMovie(movieId) ?: throw IllegalArgumentException("Movie not found")
+                            val movie = movieRepository.fetchMovie(movieId)
 
-                            screeningRepository.addScreening(
-                                UUID.fromString(screeningRequest.movieId),
-                                screeningRequest.dateTime,
-                                screeningRequest.price
-                            )
+                            if (movie == null) {
+                                call.respond(HttpStatusCode.NotFound)
+                            } else {
 
-                            call.respond(HttpStatusCode.NoContent)
+                                screeningRepository.addScreening(
+                                    UUID.fromString(screeningRequest.movieId),
+                                    screeningRequest.dateTime,
+                                    screeningRequest.price
+                                )
+
+                                call.respond(HttpStatusCode.NoContent)
+                            }
                         } catch (e: IllegalArgumentException) {
                             call.application.environment.log.error(e.message)
                             call.respond(HttpStatusCode.BadRequest, e.message ?: "")
@@ -136,7 +145,7 @@ fun Application.configureRouting() {
                                 MovieResponse(
                                     movieId,
                                     screenings.map { ScreeningResponse(it.timestamp, it.price) },
-                                    transformOmdbResponseToMovieDetailsResponse(movieId, movieDetails)
+                                    transformOmdbResponseToMovieDetailsResponse(movieDetails)
                                 )
                             )
                         }
@@ -155,15 +164,21 @@ fun Application.configureRouting() {
                     }
                     get("/details") {
                         val movieId = UUID.fromString(call.pathParameters["movieId"])
+                        try {
+                            val movie =
+                                movieRepository.fetchMovie(movieId) ?: throw IllegalArgumentException("Movie not found")
 
-                        val movie = movieRepository.fetchMovie(movieId)
-                        if (movie == null) {
-                            call.respond(HttpStatusCode.NotFound)
-                        } else {
-                            val movieDetails = omdbIntegration.getMovieDetails(movie.getImdbId()!!)
+                            val imdbId = movie.getImdbId() ?: throw IllegalArgumentException("ImdbID not found")
+
+                            val movieDetails = omdbIntegration.getMovieDetails(imdbId)
+
                             call.respond(
-                                transformOmdbResponseToMovieDetailsResponse(movieId, movieDetails)
+                                HttpStatusCode.OK,
+                                transformOmdbResponseToMovieDetailsResponse(movieDetails)
                             )
+                        } catch (e: IllegalArgumentException) {
+                            call.application.environment.log.error(e.message)
+                            call.respond(HttpStatusCode.NotFound, e.message ?: "")
                         }
 
 
@@ -171,31 +186,33 @@ fun Application.configureRouting() {
                     get("/rating") {
                         val movieId = UUID.fromString(call.pathParameters["movieId"])
 
-                        call.respond(ReviewSummaryResponse(movieId, reviewRepository.getAverageRating(movieId)))
+                        val rating = reviewRepository.getAverageRating(movieId)
+                        if (rating.isNaN()) {
+                            call.respond(HttpStatusCode.NotFound)
+                        } else {
+                            call.respond(ReviewSummaryResponse(movieId, rating))
+                        }
                     }
 
                 }
 
             }
             route("reviews") {
-                // not in spec, debug endpoint
-                get {
-                    val movieId = UUID.fromString(call.queryParameters["movieId"].orEmpty())// invalid value handling
-                    reviewRepository.fetchAllReviews(movieId)
-                }
-
                 post {
-                    val reviewRequest: ReviewRequest = call.receive<ReviewRequest>()
+                    try {
+                        val reviewRequest: ReviewRequest = call.receive<ReviewRequest>()
 
-                    // validation of request between 1 and 5
+                        reviewRepository.addReview(
+                            UUID.fromString(reviewRequest.movieId),
+                            reviewRequest.rating,
+                            LocalDateTime.now()
+                        )
 
-                    reviewRepository.addReview(
-                        UUID.fromString(reviewRequest.movieId),
-                        reviewRequest.rating,
-                        LocalDateTime.now()
-                    )
-
-                    call.respond(HttpStatusCode.OK)
+                        call.respond(HttpStatusCode.OK)
+                    } catch (e: IllegalArgumentException) {
+                        call.application.environment.log.error(e.message)
+                        call.respond(HttpStatusCode.BadRequest, e.message ?: "")
+                    }
                 }
             }
         }
