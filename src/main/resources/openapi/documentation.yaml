@@ -1,23 +1,258 @@
-openapi: "3.0.3"
+openapi: 3.0.3
 info:
-  title: "Application API"
-  description: "Application API"
-  version: "1.0.0"
+  title: Movie Screening API
+  description: API for managing movies, screenings, and ratings.
+  version: 1.0.0
 servers:
-  - url: "http://0.0.0.0:8080"
+  - url: /
 paths:
-  /:
+  /int/v1/screenings:
     get:
-      description: "Hello World!"
+      summary: Get screenings by movie ID
+      security:
+        - internal-api-auth: []
+      parameters:
+        - name: movieId
+          in: query
+          required: true
+          description: UUID of the movie
+          schema:
+            type: string
+            format: uuid
       responses:
-        "200":
-          description: "OK"
+        '200':
+          description: Successful response
           content:
-            text/plain:
+            application/json:
               schema:
-                type: "string"
-              examples:
-                Example#1:
-                  value: "Hello World!"
+                $ref: '#/components/schemas/MovieScreeningResponse'
+        '400':
+          description: Invalid input
+        '404':
+          description: Movie not found
+    put:
+      summary: Add a screening
+      security:
+        - internal-api-auth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ScreeningRequest'
+      responses:
+        '204':
+          description: Screening added successfully
+        '400':
+          description: Invalid input
+        '404':
+          description: Movie not found
+    delete:
+      summary: Delete a screening
+      security:
+        - internal-api-auth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ScreeningDeleteRequest'
+      responses:
+        '200':
+          description: Screening deleted successfully
+        '400':
+          description: Invalid input
+  /ext/v1/movies:
+    get:
+      summary: Get all movies
+      responses:
+        '200':
+          description: Successful response
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/MoviesResponse'
+  /ext/v1/movies/{movieId}:
+    get:
+      summary: Get all data about a specific movie
+      parameters:
+        - name: movieId
+          in: path
+          required: true
+          description: UUID of the movie
+          schema:
+            type: string
+            format: uuid
+      responses:
+        '200':
+          description: Successful response
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/MovieResponse'
+        '404':
+          description: Movie not found
+  /ext/v1/movies/{movieId}/screenings:
+    get:
+      summary: Get screenings of a specific movie
+      parameters:
+        - name: movieId
+          in: path
+          required: true
+          description: UUID of the movie
+          schema:
+            type: string
+            format: uuid
+      responses:
+        '200':
+          description: Successful response
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/MovieScreeningResponse'
+  /ext/v1/movies/{movieId}/details:
+    get:
+      summary: Get movie details from IMDb
+      parameters:
+        - name: movieId
+          in: path
+          required: true
+          description: UUID of the movie
+          schema:
+            type: string
+            format: uuid
+      responses:
+        '200':
+          description: Movie details
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/MovieDetailsResponse'
+        '404':
+          description: Movie or IMDb details not found
+  /ext/v1/movies/{movieId}/rating:
+    get:
+      summary: Get movie rating
+      parameters:
+        - name: movieId
+          in: path
+          required: true
+          description: UUID of the movie
+          schema:
+            type: string
+            format: uuid
+      responses:
+        '200':
+          description: Rating summary
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ReviewSummaryResponse'
+        '404':
+          description: No rating found
+  /ext/v1/reviews:
+    post:
+      summary: Add a review for a movie
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ReviewRequest'
+      responses:
+        '200':
+          description: Review added successfully
+        '400':
+          description: Invalid input
 components:
-  schemas: {}
+  securitySchemes:
+    internal-api-auth:
+      type: http
+      scheme: basic
+  schemas:
+    ReviewRequest:
+      type: object
+      properties:
+        movieId:
+          type: string
+          format: uuid
+        rating:
+          type: integer
+          format: int32
+    ScreeningRequest:
+      type: object
+      properties:
+        movieId:
+          type: string
+          format: uuid
+        dateTime:
+          type: string
+        price:
+          type: integer
+          format: int32
+    ScreeningDeleteRequest:
+      type: object
+      properties:
+        movieId:
+          type: string
+          format: uuid
+        dateTime:
+          type: string
+    MoviesResponse:
+      type: object
+      properties:
+        movies:
+          type: array
+          items:
+            $ref: '#/components/schemas/MovieResponse'
+    MovieResponse:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+        screenings:
+          type: array
+          items:
+            $ref: '#/components/schemas/ScreeningResponse'
+        details:
+          $ref: '#/components/schemas/MovieDetailsResponse'
+    MovieDetailsResponse:
+      type: object
+      properties:
+        title:
+          type: string
+          nullable: true
+        year:
+          type: string
+          nullable: true
+        rated:
+          type: string
+          nullable: true
+    MovieScreeningResponse:
+      type: object
+      properties:
+        movieId:
+          type: string
+          format: uuid
+        screenings:
+          type: array
+          items:
+            $ref: '#/components/schemas/ScreeningResponse'
+    ScreeningResponse:
+      type: object
+      properties:
+        timestamp:
+          type: string
+        price:
+          type: integer
+          format: int32
+    ReviewSummaryResponse:
+      type: object
+      properties:
+        movieId:
+          type: string
+          format: uuid
+        rating:
+          type: number
+          format: double
