@@ -11,7 +11,7 @@ import kotlinx.coroutines.runBlocking
 import kotlinx.serialization.Serializable
 import kotlinx.serialization.json.Json
 
-val OMDB_API_KEY = System.getenv("KEY")//TODO extract to some configuration file
+val OMDB_API_KEY = System.getenv("OMDB_KEY")
 
 /**
  * Assuming few fields to prove serialization is working, is enough as PoC

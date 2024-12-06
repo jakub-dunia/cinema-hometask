@@ -18,6 +18,8 @@ It will generate fat jar under `build/libs`
 
 * App is running on port 8080
 * OpenAPI console under [localhost:8080/openapi](http://localhost:8080/openapi)
+* Internal endpoints are secured behind Http Basic auth user/pass: admin/admin
+* DateTimes everywhere (db/requests etc) have format `2024-12-01 12:00`
 
 ### Providing api key
 
@@ -50,7 +52,4 @@ All model classes have IDs generated as random UUID. This makes testing pain. Fi
 ## What this project lacks
 
 * Proper dependency injection - as Ktor does not seem to provide it out of the box, unless experimental features or some external projects (kodein). I did not have time to sink in that rabbit hole.
-* Centralized configuration - Database credentials are hardcoded, keys are exported directly within integration class. With proper DI I would clean it up, but without it I just left it as is.
-
-
-
+* Better configuration - properties are extracted in messy way currently.

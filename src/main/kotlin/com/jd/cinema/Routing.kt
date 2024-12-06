@@ -18,11 +18,14 @@ import java.util.*
 
 fun Application.configureRouting() {
 
+    val adminUser = environment.config.property("ktor.credentials.admin_user").getString()
+    val adminPass = environment.config.property("ktor.credentials.admin_password").getString()
+
     val database = Database.connect(
         url = "jdbc:h2:mem:test;DB_CLOSE_DELAY=-1",
-        user = "root",
+        user = environment.config.property("ktor.credentials.db_user").getString(),
         driver = "org.h2.Driver",
-        password = "",
+        password = environment.config.property("ktor.credentials.db_password").getString()
     )
 
     val movieRepository: MovieRepository = InMemorySqlMovieRepository(database)
@@ -31,12 +34,11 @@ fun Application.configureRouting() {
 
     val omdbIntegration: OmdbIntegration = OmdbHttpIntegration()
 
-
     authentication {
         basic(name = "internal-api-auth") {
             realm = "Ktor Server"
             validate { credentials ->
-                if (credentials.name == "admin" && credentials.password == "admin") {
+                if (credentials.name == adminUser && credentials.password == adminPass) {
                     UserIdPrincipal(credentials.name)
                 } else {
                     null

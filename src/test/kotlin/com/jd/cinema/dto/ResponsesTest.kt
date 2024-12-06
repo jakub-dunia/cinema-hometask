@@ -7,6 +7,7 @@ import java.time.LocalDateTime
 import java.util.*
 import kotlin.test.Test
 import kotlin.test.assertEquals
+import kotlin.test.assertNull
 
 class ResponsesTests {
 
@@ -17,10 +18,9 @@ class ResponsesTests {
         val omdbResponse = OmdbResponse("Inception", "2010", "PG-13")
 
         // when
-        val result = transformOmdbResponseToMovieDetailsResponse(movieId, omdbResponse)
+        val result = transformOmdbResponseToMovieDetailsResponse(omdbResponse)
 
         // then
-        assertEquals(movieId, result.id)
         assertEquals("Inception", result.title)
         assertEquals("2010", result.year)
         assertEquals("PG-13", result.rated)
@@ -32,13 +32,12 @@ class ResponsesTests {
         val movieId = UUID.randomUUID()
 
         // when
-        val result = transformOmdbResponseToMovieDetailsResponse(movieId, null)
+        val result = transformOmdbResponseToMovieDetailsResponse(null)
 
         // then
-        assertEquals(movieId, result.id)
-        assertEquals("", result.title)
-        assertEquals("", result.year)
-        assertEquals("", result.rated)
+        assertNull(result.title)
+        assertNull(result.year)
+        assertNull(result.rated)
     }
 
     @Test
@@ -74,9 +73,9 @@ class ResponsesTests {
         // then
         assertEquals(movie.id, result.id)
         assertEquals(0, result.screenings.size)
-        assertEquals("", result.details?.title)
-        assertEquals("", result.details?.year)
-        assertEquals("", result.details?.rated)
+        assertNull(result.details?.title)
+        assertNull(result.details?.year)
+        assertNull(result.details?.rated)
     }
 
     @Test
