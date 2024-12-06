@@ -14,7 +14,7 @@ import kotlinx.serialization.json.Json
 val OMDB_API_KEY = System.getenv("KEY")//TODO extract to some configuration file
 
 /**
- * I am assuming few fields to prove serialization is working is enough
+ * Assuming few fields to prove serialization is working, is enough as PoC
  */
 @Serializable
 data class OmdbResponse(

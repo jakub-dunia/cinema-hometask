@@ -8,6 +8,7 @@ import com.jd.cinema.integrations.OmdbResponse
 import io.ktor.http.*
 import io.ktor.server.application.*
 import io.ktor.server.auth.*
+import io.ktor.server.plugins.swagger.*
 import io.ktor.server.request.*
 import io.ktor.server.response.*
 import io.ktor.server.routing.*
@@ -33,7 +34,7 @@ fun Application.configureRouting() {
     fun getMovieDetails(movieId: UUID): OmdbResponse {
         val movie = movieRepository.fetchMovie(movieId)
         return if (movie != null) {
-            omdbIntegration.getMovieDetails(movie.getImdbId())
+            omdbIntegration.getMovieDetails(movie.getImdbId()!!)
         } else {
             OmdbResponse()
         }
@@ -50,38 +51,53 @@ fun Application.configureRouting() {
                 }
             }
         }
-
     }
 
     routing {
+        swaggerUI(path = "openapi")
+
         authenticate("internal-api-auth") {
             route("/int/v1/") {
                 route("screenings") {
                     get {
-                        val movieId = UUID.fromString(call.queryParameters["movieId"].orEmpty())
+                        try {
+                            val movieId = UUID.fromString(
+                                call.queryParameters["movieId"]
+                                    ?: throw IllegalArgumentException("Movie ID not provided")
+                            )
 
-                        // bad request on invalid movie id
+                            movieRepository.fetchMovie(movieId) ?: throw IllegalArgumentException("Movie not found")
 
-                        val screenings = screeningRepository.fetchScreeningsByMovieId(movieId)
+                            val screenings = screeningRepository.fetchScreeningsByMovieId(movieId)
 
-                        call.respond(
-                            MovieResponse(
-                                movieId,
-                                screenings.map { ScreeningResponse(it.timestamp, it.price) })
-                        )
+                            call.respond(
+                                MovieResponse(
+                                    movieId,
+                                    screenings.map { ScreeningResponse(it.timestamp, it.price) })
+                            )
+                        } catch (e: IllegalArgumentException) {
+                            call.application.environment.log.error(e.message)
+                            call.respond(HttpStatusCode.BadRequest, e.message ?: "")
+                        }
                     }
                     put {
                         val screeningRequest: ScreeningRequest = call.receive<ScreeningRequest>()
+                        try {
+                            val movieId = UUID.fromString(screeningRequest.movieId)
 
-                        // add validation if movie existing, if screening in the future? if price > 0
+                            movieRepository.fetchMovie(movieId) ?: throw IllegalArgumentException("Movie not found")
 
-                        screeningRepository.addScreening(
-                            UUID.fromString(screeningRequest.movieId),
-                            screeningRequest.dateTime,
-                            screeningRequest.price
-                        )
+                            screeningRepository.addScreening(
+                                UUID.fromString(screeningRequest.movieId),
+                                screeningRequest.dateTime,
+                                screeningRequest.price
+                            )
 
-                        call.respond(HttpStatusCode.NoContent)
+                            call.respond(HttpStatusCode.NoContent)
+                        } catch (e: IllegalArgumentException) {
+                            call.application.environment.log.error(e.message)
+                            call.respond(HttpStatusCode.BadRequest, e.message ?: "")
+                        }
                     }
                     delete {
                         val deleteRequest: ScreeningDeleteRequest = call.receive<ScreeningDeleteRequest>()
@@ -108,23 +124,22 @@ fun Application.configureRouting() {
                     get {
                         val movieId = UUID.fromString(call.pathParameters["movieId"])
 
-                        // bad request on invalid movie id
                         val movie = movieRepository.fetchMovie(movieId)
 
                         if (movie == null) {
                             call.respond(HttpStatusCode.NotFound)
-                        }
+                        } else {
+                            val screenings = screeningRepository.fetchScreeningsByMovieId(movieId)
+                            val movieDetails = omdbIntegration.getMovieDetails(movie.getImdbId()!!)
 
-                        val screenings = screeningRepository.fetchScreeningsByMovieId(movieId)
-                        val movieDetails = omdbIntegration.getMovieDetails(movie!!.getImdbId())
-
-                        call.respond(
-                            MovieResponse(
-                                movieId,
-                                screenings.map { ScreeningResponse(it.timestamp, it.price) },
-                                transformOmdbResponseToMovieDetailsResponse(movieId, movieDetails)
+                            call.respond(
+                                MovieResponse(
+                                    movieId,
+                                    screenings.map { ScreeningResponse(it.timestamp, it.price) },
+                                    transformOmdbResponseToMovieDetailsResponse(movieId, movieDetails)
+                                )
                             )
-                        ) // enrich with movie details
+                        }
 
                     }
                     get("/screenings") {
@@ -140,15 +155,15 @@ fun Application.configureRouting() {
                     }
                     get("/details") {
                         val movieId = UUID.fromString(call.pathParameters["movieId"])
+
                         val movie = movieRepository.fetchMovie(movieId)
-                        if (movie != null) {
-                            val movieDetails = omdbIntegration.getMovieDetails(movie.getImdbId())
+                        if (movie == null) {
+                            call.respond(HttpStatusCode.NotFound)
+                        } else {
+                            val movieDetails = omdbIntegration.getMovieDetails(movie.getImdbId()!!)
                             call.respond(
                                 transformOmdbResponseToMovieDetailsResponse(movieId, movieDetails)
                             )
-
-                        } else {
-                            call.respond(HttpStatusCode.NotFound)
                         }
 
 
@@ -185,6 +200,5 @@ fun Application.configureRouting() {
             }
         }
     }
-
 
 }

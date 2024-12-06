@@ -17,8 +17,13 @@ data class Movie(
     val externalId: String
 ) {
 
-    fun getImdbId(): String {
-        return externalId.split(":")[1]//TODO unsafe
+    fun getImdbId(): String? {
+        val keyValue = externalId.split(":")
+
+        return if (keyValue.size == 2 && keyValue[0] == "imdb")
+            keyValue[1]
+        else
+            null
     }
 
 }
@@ -29,7 +34,11 @@ data class Screening(
     @Serializable(with = UUIDSerializer::class) val movieId: UUID,
     @Serializable(with = LocalDateTimeSerializer::class) val timestamp: LocalDateTime,
     val price: Int
-)
+) {
+    init {
+        if (price < 0) throw IllegalArgumentException("Price could not be negative")
+    }
+}
 
 @Serializable
 data class Review(
@@ -37,7 +46,11 @@ data class Review(
     @Serializable(with = UUIDSerializer::class) val movieId: UUID,
     val rating: Int,
     @Serializable(with = LocalDateTimeSerializer::class) val timestamp: LocalDateTime
-)
+) {
+    init {
+        if (rating < 1 || rating > 5) throw IllegalArgumentException("Rating not in acceptable range")
+    }
+}
 
 interface MovieRepository {
 
